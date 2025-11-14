@@ -1,0 +1,348 @@
+-- WindUI Simplified - Core UI Library Structure
+local WindUI = {
+    cache = {},
+    load = function(self, module)
+        if not self.cache[module] then
+            self.cache[module] = {c = self[module]()}
+        end
+        return self.cache[module].c
+    end
+}
+
+-- Core UI Components
+function WindUI:Core()
+    local Core = {
+        Font = "rbxassetid://12187365364",
+        Colors = {
+            Red = "#e53935",
+            Orange = "#f57c00", 
+            Green = "#43a047",
+            Blue = "#039be5",
+            White = "#ffffff",
+            Grey = "#484848",
+        },
+        DefaultProperties = {
+            ScreenGui = {ResetOnSpawn = false, ZIndexBehavior = "Sibling"},
+            Frame = {BorderSizePixel = 0, BackgroundColor3 = Color3.new(1,1,1)},
+            TextLabel = {BackgroundColor3 = Color3.new(1,1,1), BorderSizePixel = 0, Text = ""},
+            TextButton = {BackgroundColor3 = Color3.new(1,1,1), BorderSizePixel = 0, Text = "", AutoButtonColor = false},
+        }
+    }
+    
+    -- Core UI Creation Function
+    function Core.New(type, properties, children)
+        local instance = Instance.new(type)
+        
+        for property, value in pairs(Core.DefaultProperties[type] or {}) do
+            instance[property] = value
+        end
+        
+        for property, value in pairs(properties or {}) do
+            instance[property] = value
+        end
+        
+        for _, child in pairs(children or {}) do
+            child.Parent = instance
+        end
+        
+        return instance
+    end
+    
+    -- Rounded Frame Creation
+    function Core.NewRoundFrame(radius, shapeType, properties, children)
+        local frame = Core.New("ImageLabel", {
+            Image = Core.Shapes[shapeType] or "rbxassetid://80999662900595",
+            ScaleType = "Slice",
+            SliceCenter = Rect.new(256, 256, 256, 256),
+            SliceScale = 1,
+            BackgroundTransparency = 1,
+        }, children)
+        
+        for property, value in pairs(properties or {}) do
+            frame[property] = value
+        end
+        
+        return frame
+    end
+    
+    Core.Shapes = {
+        Squircle = "rbxassetid://80999662900595",
+        ["Squircle-Outline"] = "rbxassetid://117817408534198",
+        ["Shadow-sm"] = "rbxassetid://84825982946844",
+    }
+    
+    return Core
+end
+
+-- Window System
+function WindUI:WindowSystem()
+    local WindowSystem = {}
+    
+    function WindowSystem.CreateWindow(config)
+        local Window = {
+            Title = config.Title or "UI Library",
+            Size = config.Size or UDim2.new(0, 580, 0, 460),
+            Position = config.Position or UDim2.new(0.5, 0, 0.5, 0),
+            UICorner = 16,
+            UIPadding = 14,
+            Elements = {}
+        }
+        
+        -- Main Window Container
+        Window.MainFrame = WindUI:load("Core").New("Frame", {
+            Size = Window.Size,
+            Position = Window.Position,
+            BackgroundColor3 = Color3.fromRGB(25, 25, 25),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Parent = config.Parent
+        }, {
+            WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(0, Window.UICorner)})
+        })
+        
+        -- Top Bar
+        Window.TopBar = WindUI:load("Core").New("Frame", {
+            Size = UDim2.new(1, 0, 0, 40),
+            BackgroundColor3 = Color3.fromRGB(35, 35, 35),
+            BorderSizePixel = 0
+        }, {
+            WindUI:load("Core").New("UICorner", {
+                CornerRadius = UDim.new(0, Window.UICorner),
+                Name = "TopCorner"
+            })
+        })
+        Window.TopBar.Parent = Window.MainFrame
+        
+        -- Title Label
+        Window.TitleLabel = WindUI:load("Core").New("TextLabel", {
+            Text = Window.Title,
+            Size = UDim2.new(1, -80, 1, 0),
+            Position = UDim2.new(0, 10, 0, 0),
+            BackgroundTransparency = 1,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            TextSize = 16,
+            Font = Enum.Font.GothamSemibold,
+            TextXAlignment = Enum.TextXAlignment.Left
+        })
+        Window.TitleLabel.Parent = Window.TopBar
+        
+        -- Content Area
+        Window.ContentFrame = WindUI:load("Core").New("Frame", {
+            Size = UDim2.new(1, 0, 1, -40),
+            Position = UDim2.new(0, 0, 0, 40),
+            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+            BorderSizePixel = 0
+        }, {
+            WindUI:load("Core").New("UICorner", {
+                CornerRadius = UDim.new(0, Window.UICorner),
+                Name = "ContentCorner"
+            })
+        })
+        Window.ContentFrame.Parent = Window.MainFrame
+        
+        -- Tab System
+        Window.Tabs = {}
+        Window.CurrentTab = nil
+        
+        function Window.CreateTab(title)
+            local Tab = {
+                Title = title,
+                Elements = {}
+            }
+            
+            -- Tab Button
+            Tab.Button = WindUI:load("Core").New("TextButton", {
+                Text = title,
+                Size = UDim2.new(0, 80, 0, 30),
+                BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+                TextColor3 = Color3.fromRGB(200, 200, 200),
+                AutoButtonColor = false
+            }, {
+                WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(0, 6)})
+            })
+            
+            -- Tab Content
+            Tab.Content = WindUI:load("Core").New("ScrollingFrame", {
+                Size = UDim2.new(1, -20, 1, -20),
+                Position = UDim2.new(0, 10, 0, 10),
+                BackgroundTransparency = 1,
+                ScrollBarThickness = 3,
+                CanvasSize = UDim2.new(0, 0, 0, 0),
+                AutomaticCanvasSize = Enum.AutomaticSize.Y
+            }, {
+                WindUI:load("Core").New("UIListLayout", {
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    Padding = UDim.new(0, 5)
+                })
+            })
+            Tab.Content.Visible = false
+            
+            table.insert(Window.Tabs, Tab)
+            
+            if not Window.CurrentTab then
+                Window:SelectTab(Tab)
+            end
+            
+            return Tab
+        end
+        
+        function Window.SelectTab(tab)
+            if Window.CurrentTab then
+                Window.CurrentTab.Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                Window.CurrentTab.Content.Visible = false
+            end
+            
+            Window.CurrentTab = tab
+            tab.Button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            tab.Content.Visible = true
+            tab.Content.Parent = Window.ContentFrame
+        end
+        
+        return Window
+    end
+    
+    return WindowSystem
+end
+
+-- UI Elements
+function WindUI:Elements()
+    local Elements = {}
+    
+    function Elements.Button(parent, config)
+        local Button = {
+            Text = config.Text or "Button",
+            Callback = config.Callback or function() end
+        }
+        
+        Button.Frame = WindUI:load("Core").NewRoundFrame(8, "Squircle", {
+            Size = config.Size or UDim2.new(1, -20, 0, 40),
+            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+            Parent = parent
+        }, {
+            WindUI:load("Core").New("TextButton", {
+                Text = Button.Text,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextSize = 14,
+                AutoButtonColor = false
+            })
+        })
+        
+        Button.Frame.MouseButton1Click:Connect(Button.Callback)
+        
+        return Button
+    end
+    
+    function Elements.Label(parent, config)
+        local Label = {
+            Text = config.Text or "Label",
+            TextSize = config.TextSize or 14
+        }
+        
+        Label.Frame = WindUI:load("Core").New("TextLabel", {
+            Text = Label.Text,
+            Size = config.Size or UDim2.new(1, -20, 0, 30),
+            BackgroundTransparency = 1,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            TextSize = Label.TextSize,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = parent
+        })
+        
+        return Label
+    end
+    
+    function Elements.Slider(parent, config)
+        local Slider = {
+            Value = config.Value or 50,
+            Min = config.Min or 0,
+            Max = config.Max or 100,
+            Callback = config.Callback or function() end
+        }
+        
+        Slider.Frame = WindUI:load("Core").New("Frame", {
+            Size = config.Size or UDim2.new(1, -20, 0, 40),
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+            Parent = parent
+        }, {
+            WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(0, 6)}),
+            WindUI:load("Core").New("Frame", {
+                Size = UDim2.new((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0),
+                BackgroundColor3 = Color3.fromRGB(0, 120, 215),
+                Name = "Fill"
+            }, {
+                WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(0, 6)})
+            }),
+            WindUI:load("Core").New("TextLabel", {
+                Text = tostring(Slider.Value),
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextSize = 12
+            })
+        })
+        
+        return Slider
+    end
+    
+    function Elements.Toggle(parent, config)
+        local Toggle = {
+            Value = config.Value or false,
+            Callback = config.Callback or function() end
+        }
+        
+        Toggle.Frame = WindUI:load("Core").New("Frame", {
+            Size = config.Size or UDim2.new(1, -20, 0, 30),
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+            Parent = parent
+        }, {
+            WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(0, 15)}),
+            WindUI:load("Core").New("Frame", {
+                Size = UDim2.new(0, 16, 0, 16),
+                Position = UDim2.new(0, 5, 0.5, 0),
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundColor3 = Toggle.Value and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(100, 100, 100),
+                Name = "ToggleCircle"
+            }, {
+                WindUI:load("Core").New("UICorner", {CornerRadius = UDim.new(1, 0)})
+            }),
+            WindUI:load("Core").New("TextLabel", {
+                Text = config.Text or "Toggle",
+                Size = UDim2.new(1, -30, 1, 0),
+                Position = UDim2.new(0, 25, 0, 0),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+        })
+        
+        Toggle.Frame.MouseButton1Click:Connect(function()
+            Toggle.Value = not Toggle.Value
+            Toggle.Frame.ToggleCircle.BackgroundColor3 = Toggle.Value and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(100, 100, 100)
+            Toggle.Callback(Toggle.Value)
+        end)
+        
+        return Toggle
+    end
+    
+    return Elements
+end
+
+-- Main Library Interface
+local Library = {}
+
+function Library:CreateWindow(config)
+    local core = WindUI:load("Core")
+    local windowSystem = WindUI:load("WindowSystem")
+    
+    return windowSystem.CreateWindow(config)
+end
+
+function Library:Notify(config)
+    -- Simple notification system placeholder
+    warn("[WindUI] " .. (config.Title or "Notification") .. ": " .. (config.Content or ""))
+end
+
+-- Initialize the library
+return Library
